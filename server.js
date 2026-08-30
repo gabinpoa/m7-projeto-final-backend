@@ -30,6 +30,35 @@ connectToMongoDB();
 
 // API Routes
 
+// Google Books Search Proxy
+app.get('/api/livros/google-search', async (req, res) => {
+  try {
+    const query = req.query.q;
+    if (!query) {
+      return res.status(400).json({ error: 'Query parameter is required' });
+    }
+
+    const googleApiKey = process.env.GOOGLE_BOOKS_API_KEY;
+    if (!googleApiKey) {
+      return res.status(500).json({ error: 'Google Books API key not configured' });
+    }
+
+    const googleBooksUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&key=${googleApiKey}`;
+    
+    const response = await fetch(googleBooksUrl);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+    
+    res.json(data);
+  } catch (error) {
+    console.error('Error searching Google Books:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET all livros
 app.get('/api/livros', async (req, res) => {
   try {
@@ -62,7 +91,7 @@ app.get('/api/livros/:id', async (req, res) => {
 // POST new livro
 app.post('/api/livros', async (req, res) => {
   try {
-    const { titulo, autor, categoria, ano, status, descricao } = req.body;
+    const { titulo, autor, categoria, ano, status, descricao, googleBooksId } = req.body;
     
     // Validation
     if (!titulo || !autor || !categoria || !ano || !status) {
@@ -77,6 +106,7 @@ app.post('/api/livros', async (req, res) => {
       ano: parseInt(ano),
       status,
       descricao: descricao || '',
+      googleBooksId: googleBooksId || null,
       createdAt: new Date()
     };
     
@@ -93,7 +123,7 @@ app.post('/api/livros', async (req, res) => {
 // PUT update livro
 app.put('/api/livros/:id', async (req, res) => {
   try {
-    const { titulo, autor, categoria, ano, status, descricao } = req.body;
+    const { titulo, autor, categoria, ano, status, descricao, googleBooksId } = req.body;
     
     // Validation
     if (!titulo || !autor || !categoria || !ano || !status) {
@@ -108,6 +138,7 @@ app.put('/api/livros/:id', async (req, res) => {
       ano: parseInt(ano),
       status,
       descricao: descricao || '',
+      googleBooksId: googleBooksId || null,
       updatedAt: new Date()
     };
     
